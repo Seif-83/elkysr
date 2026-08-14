@@ -205,21 +205,42 @@
 </div>
 
 <script>
-    // قاعدة البيانات الأولية (ممكن تسيبها فاضية أو تحط فيها الغربي الثابت)
-    let perfumes = JSON.parse(localStorage.getItem('al-qaisar-data')) || [
-        { name: "غربي (رجالي/حريمي)", price: 13 }
-    ];
+    const STORAGE_KEY = 'al-qaisar-data';
+    const DEFAULT_PERFUMES = [{ name: "غربي (رجالي/حريمي)", price: 13 }];
+
+    function getStoredPerfumes() {
+        const candidates = [
+            () => localStorage.getItem(STORAGE_KEY),
+            () => sessionStorage.getItem(STORAGE_KEY)
+        ];
+
+        for (const getValue of candidates) {
+            try {
+                const raw = getValue();
+                if (!raw) continue;
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    return parsed;
+                }
+            } catch (error) {
+                console.warn('Could not parse stored perfumes:', error);
+            }
+        }
+
+        return DEFAULT_PERFUMES;
+    }
+
+    let perfumes = getStoredPerfumes();
 
     // وظيفة البحث
     function searchPerfume() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
+        const query = document.getElementById('searchInput').value.trim().toLowerCase();
         const resultCard = document.getElementById('resultCard');
         const resName = document.getElementById('resName');
         const resPrice = document.getElementById('resPrice');
 
         if (query.length > 0) {
-            // البحث عن أول عطر يحتوي على الحروف المكتوبة
-            const found = perfumes.find(p => p.name.includes(query));
+            const found = perfumes.find(p => p.name.toLowerCase().includes(query));
             
             if (found) {
                 resName.innerText = found.name;
@@ -268,7 +289,17 @@
 
     // حفظ البيانات في المتصفح
     function saveData() {
-        localStorage.setItem('al-qaisar-data', JSON.stringify(perfumes));
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(perfumes));
+        } catch (error) {
+            console.warn('localStorage is not available, using sessionStorage fallback:', error);
+        }
+
+        try {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(perfumes));
+        } catch (error) {
+            console.warn('sessionStorage is not available:', error);
+        }
     }
 
     // تحديث جدول لوحة التحكم
