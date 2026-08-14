@@ -204,9 +204,50 @@
     </div>
 </div>
 
-<script>
+<script type="module">
     const STORAGE_KEY = 'al-qaisar-data';
-    const DEFAULT_PERFUMES = [{ name: "غربي (رجالي/حريمي)", price: 13 }];
+    const DEFAULT_PERFUMES = [{ id: 'default-1', name: 'غربي (رجالي/حريمي)', price: 13 }];
+
+    const firebaseConfig = {
+        apiKey: 'AIzaSyCjHvlBoEoWW7z1Dc4C1BC1vDmAk1UDPQo',
+        authDomain: 'elkysr-130fe.firebaseapp.com',
+        databaseURL: 'https://elkysr-130fe-default-rtdb.firebaseio.com',
+        projectId: 'elkysr-130fe',
+        storageBucket: 'elkysr-130fe.firebasestorage.app',
+        messagingSenderId: '1077458699020',
+        appId: '1:1077458699020:web:3da0f9ae7782a55f197f29',
+        measurementId: 'G-DTQ3SK6178'
+    };
+
+    const isFirebaseConfigured = !!firebaseConfig.apiKey &&
+        !firebaseConfig.apiKey.includes('YOUR_') &&
+        !!firebaseConfig.databaseURL &&
+        !firebaseConfig.databaseURL.includes('YOUR_');
+
+    let db = null;
+    let perfumes = [];
+
+    function generateId() {
+        if (window.crypto && crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+    }
+
+    function normalizePerfume(item, fallbackId = null) {
+        if (!item || typeof item !== 'object') return null;
+
+        const name = String(item.name || '').trim();
+        const price = Number(item.price);
+
+        if (!name || Number.isNaN(price)) return null;
+
+        return {
+            id: item.id || fallbackId || generateId(),
+            name,
+            price
+        };
+    }
 
     function getStoredPerfumes() {
         const candidates = [
@@ -219,8 +260,12 @@
                 const raw = getValue();
                 if (!raw) continue;
                 const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    return parsed;
+                if (Array.isArray(parsed)) {
+                    const normalized = parsed
+                        .map(item => normalizePerfume(item))
+                        .filter(Boolean);
+
+                    if (normalized.length > 0) return normalized;
                 }
             } catch (error) {
                 console.warn('Could not parse stored perfumes:', error);
@@ -230,9 +275,62 @@
         return DEFAULT_PERFUMES;
     }
 
-    let perfumes = getStoredPerfumes();
+    function saveLocalBackup(data) {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch (error) {
+            console.warn('localStorage unavailable:', error);
+        }
 
-    // وظيفة البحث
+        try {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch (error) {
+            console.warn('sessionStorage unavailable:', error);
+        }
+    }
+
+    function setProducts(data) {
+        perfumes = data
+            .map(item => normalizePerfume(item))
+            .filter(Boolean);
+
+        if (perfumes.length === 0) {
+            perfumes = DEFAULT_PERFUMES;
+        }
+
+        saveLocalBackup(perfumes);
+        renderTable();
+    }
+
+    async function initFirebase() {
+        if (!isFirebaseConfigured) {
+            return false;
+        }
+
+        try {
+            const [{ initializeApp }, { getDatabase, ref, set, remove, onValue }] = await Promise.all([
+                import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
+                import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js')
+            ]);
+
+            const app = initializeApp(firebaseConfig);
+            db = getDatabase(app);
+
+            const perfumesRef = ref(db, 'perfumes');
+            onValue(perfumesRef, (snapshot) => {
+                const data = snapshot.val() || {};
+                const firebaseProducts = Object.entries(data).map(([id, item]) => normalizePerfume({ ...item, id }, id));
+                setProducts(firebaseProducts.filter(Boolean));
+            });
+
+            return true;
+        } catch (error) {
+            console.warn('Firebase connection failed, using local storage fallback:', error);
+            db = null;
+            return false;
+        }
+    }
+
     function searchPerfume() {
         const query = document.getElementById('searchInput').value.trim().toLowerCase();
         const resultCard = document.getElementById('resultCard');
@@ -241,7 +339,7 @@
 
         if (query.length > 0) {
             const found = perfumes.find(p => p.name.toLowerCase().includes(query));
-            
+
             if (found) {
                 resName.innerText = found.name;
                 resPrice.innerText = found.price;
@@ -254,71 +352,98 @@
         }
     }
 
-    // فتح وقفل لوحة التحكم
     function toggleAdmin() {
         const content = document.getElementById('adminContent');
         content.style.display = content.style.display === 'block' ? 'none' : 'block';
         renderTable();
     }
 
-    // إضافة عطر جديد
-    function addPerfume() {
-        const name = document.getElementById('newName').value;
-        const price = document.getElementById('newPrice').value;
+    window.searchPerfume = searchPerfume;
+    window.toggleAdmin = toggleAdmin;
+    window.renderTable = renderTable;
 
-        if (name && price) {
-            perfumes.push({ name: name, price: parseFloat(price) });
-            saveData();
-            document.getElementById('newName').value = '';
-            document.getElementById('newPrice').value = '';
-            renderTable();
-            alert('تمت إضافة العطر بنجاح!');
+    async function addPerfume() {
+        const name = document.getElementById('newName').value.trim();
+        const priceValue = document.getElementById('newPrice').value;
+        const price = Number(priceValue);
+
+        if (!name || Number.isNaN(price) || price <= 0) {
+            alert('يرجى كتابة الاسم والسعر بشكل صحيح');
+            return;
+        }
+
+        const newPerfume = { id: generateId(), name, price };
+
+        if (db) {
+            try {
+                const { ref: dbRef, set } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
+                await set(dbRef(db, `perfumes/${newPerfume.id}`), newPerfume);
+                alert('تمت إضافة العطر بنجاح!');
+            } catch (error) {
+                console.error('Failed to save to Firebase:', error);
+                alert('فشل الحفظ في Firebase، تم حفظه محلياً فقط.');
+                perfumes.push(newPerfume);
+                saveLocalBackup(perfumes);
+                renderTable();
+            }
         } else {
-            alert('يرجى كتابة الاسم والسعر');
+            perfumes.push(newPerfume);
+            saveLocalBackup(perfumes);
         }
+
+        document.getElementById('newName').value = '';
+        document.getElementById('newPrice').value = '';
+        renderTable();
     }
 
-    // حذف عطر
-    function deletePerfume(index) {
-        if(confirm('هل تريد مسح هذا العطر؟')) {
-            perfumes.splice(index, 1);
-            saveData();
-            renderTable();
+    window.addPerfume = addPerfume;
+
+    async function deletePerfume(id) {
+        if (!confirm('هل تريد مسح هذا العطر؟')) return;
+
+        if (db) {
+            try {
+                const { ref: dbRef, remove } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
+                await remove(dbRef(db, `perfumes/${id}`));
+                return;
+            } catch (error) {
+                console.error('Failed to delete from Firebase:', error);
+            }
         }
+
+        perfumes = perfumes.filter(item => item.id !== id);
+        saveLocalBackup(perfumes);
+        renderTable();
     }
 
-    // حفظ البيانات في المتصفح
-    function saveData() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(perfumes));
-        } catch (error) {
-            console.warn('localStorage is not available, using sessionStorage fallback:', error);
-        }
+    window.deletePerfume = deletePerfume;
 
-        try {
-            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(perfumes));
-        } catch (error) {
-            console.warn('sessionStorage is not available:', error);
-        }
-    }
-
-    // تحديث جدول لوحة التحكم
     function renderTable() {
         const tbody = document.getElementById('perfumeTableBody');
         tbody.innerHTML = '';
-        perfumes.forEach((p, index) => {
+
+        perfumes.forEach((p) => {
             tbody.innerHTML += `
                 <tr>
                     <td>${p.name}</td>
                     <td>${p.price} ج</td>
-                    <td><button class="delete-btn" onclick="deletePerfume(${index})">❌</button></td>
+                    <td><button class="delete-btn" onclick="deletePerfume('${p.id}')">❌</button></td>
                 </tr>
             `;
         });
     }
 
-    // أول ما الصفحة تفتح
-    renderTable();
+    async function startApp() {
+        perfumes = getStoredPerfumes();
+        renderTable();
+        await initFirebase();
+
+        if (!db) {
+            setProducts(perfumes);
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', startApp);
 </script>
 
 </body>
