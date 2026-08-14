@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>القيصر للعطور - لوحة الأسعار</title>
+    <!-- خط Cairo من Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #d4af37;
+            --dark: #1a1a1a;
+            --light: #f4f4f4;
+            --white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--dark);
+            color: var(--white);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--gold);
+            padding-bottom: 10px;
+        }
+
+        header h1 {
+            color: var(--gold);
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* قسم البحث */
+        .search-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--gold);
+            background: #222;
+            color: white;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        /* نتائج البحث */
+        .result-card {
+            background: var(--white);
+            color: var(--dark);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .result-card h2 {
+            color: #888;
+            font-size: 1rem;
+        }
+
+        .result-card .price {
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--gold);
+        }
+
+        .result-card .currency {
+            font-size: 1.2rem;
+        }
+
+        /* لوحة التحكم */
+        .admin-panel {
+            margin-top: 50px;
+            border-top: 1px dashed var(--gold);
+            padding-top: 20px;
+        }
+
+        .admin-btn {
+            background: none;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 100%;
+            font-weight: bold;
+        }
+
+        .admin-content {
+            display: none;
+            background: #222;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .add-btn {
+            background: var(--gold);
+            color: var(--dark);
+            border: none;
+            padding: 10px;
+            width: 100%;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* جدول العطور المضافة */
+        .perfume-list {
+            margin-top: 20px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .perfume-list th, .perfume-list td {
+            padding: 10px;
+            border-bottom: 1px solid #444;
+            text-align: right;
+        }
+
+        .delete-btn {
+            color: #ff4d4d;
+            cursor: pointer;
+            border: none;
+            background: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>القيصر للعطور</h1>
+        <p>دليل سعر الجرام الذكي</p>
+    </header>
+
+    <!-- قسم البحث -->
+    <div class="search-section">
+        <input type="text" id="searchInput" placeholder="اكتب اسم العطر هنا..." oninput="searchPerfume()">
+        <div id="resultCard" class="result-card">
+            <h2 id="resName">اسم العطر</h2>
+            <div class="price" id="resPrice">0</div>
+            <div class="currency">جنيه مصري للجرام</div>
+        </div>
+    </div>
+
+    <!-- لوحة التحكم -->
+    <div class="admin-panel">
+        <button class="admin-btn" onclick="toggleAdmin()">⚙️ لوحة التحكم (إضافة عطور)</button>
+        
+        <div id="adminContent" class="admin-content">
+            <h3>إضافة عطر جديد</h3>
+            <div class="form-group">
+                <input type="text" id="newName" placeholder="اسم العطر">
+                <input type="number" id="newPrice" placeholder="سعر الجرام">
+                <button class="add-btn" onclick="addPerfume()">إضافة للمخزن</button>
+            </div>
+
+            <table class="perfume-list">
+                <thead>
+                    <tr>
+                        <th>العطر</th>
+                        <th>السعر</th>
+                        <th>حذف</th>
+                    </tr>
+                </thead>
+                <tbody id="perfumeTableBody">
+                    <!-- هيتم ملي البيانات بالـ JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // قاعدة البيانات الأولية (ممكن تسيبها فاضية أو تحط فيها الغربي الثابت)
+    let perfumes = JSON.parse(localStorage.getItem('al-qaisar-data')) || [
+        { name: "غربي (رجالي/حريمي)", price: 13 }
+    ];
+
+    // وظيفة البحث
+    function searchPerfume() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const resultCard = document.getElementById('resultCard');
+        const resName = document.getElementById('resName');
+        const resPrice = document.getElementById('resPrice');
+
+        if (query.length > 0) {
+            // البحث عن أول عطر يحتوي على الحروف المكتوبة
+            const found = perfumes.find(p => p.name.includes(query));
+            
+            if (found) {
+                resName.innerText = found.name;
+                resPrice.innerText = found.price;
+                resultCard.style.display = 'block';
+            } else {
+                resultCard.style.display = 'none';
+            }
+        } else {
+            resultCard.style.display = 'none';
+        }
+    }
+
+    // فتح وقفل لوحة التحكم
+    function toggleAdmin() {
+        const content = document.getElementById('adminContent');
+        content.style.display = content.style.display === 'block' ? 'none' : 'block';
+        renderTable();
+    }
+
+    // إضافة عطر جديد
+    function addPerfume() {
+        const name = document.getElementById('newName').value;
+        const price = document.getElementById('newPrice').value;
+
+        if (name && price) {
+            perfumes.push({ name: name, price: parseFloat(price) });
+            saveData();
+            document.getElementById('newName').value = '';
+            document.getElementById('newPrice').value = '';
+            renderTable();
+            alert('تمت إضافة العطر بنجاح!');
+        } else {
+            alert('يرجى كتابة الاسم والسعر');
+        }
+    }
+
+    // حذف عطر
+    function deletePerfume(index) {
+        if(confirm('هل تريد مسح هذا العطر؟')) {
+            perfumes.splice(index, 1);
+            saveData();
+            renderTable();
+        }
+    }
+
+    // حفظ البيانات في المتصفح
+    function saveData() {
+        localStorage.setItem('al-qaisar-data', JSON.stringify(perfumes));
+    }
+
+    // تحديث جدول لوحة التحكم
+    function renderTable() {
+        const tbody = document.getElementById('perfumeTableBody');
+        tbody.innerHTML = '';
+        perfumes.forEach((p, index) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${p.name}</td>
+                    <td>${p.price} ج</td>
+                    <td><button class="delete-btn" onclick="deletePerfume(${index})">❌</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    // أول ما الصفحة تفتح
+    renderTable();
+</script>
+
+</body>
+</html>
