@@ -153,23 +153,176 @@
         }
 
         /* جدول العطور المضافة */
-        .perfume-list {
-            margin-top: 20px;
+        .stock-search {
             width: 100%;
+            margin-bottom: 15px;
+            background: #111;
+            border: 1px solid #3a3a3a;
+            border-radius: 10px;
+            color: white;
+            padding: 12px 14px;
+            font-size: 1rem;
+        }
+
+        .table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 12px;
+            margin-top: 10px;
+        }
+
+        .perfume-list {
+            margin-top: 0;
+            width: 100%;
+            min-width: 520px;
             border-collapse: collapse;
+            background: #111;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
         }
 
         .perfume-list th, .perfume-list td {
-            padding: 10px;
-            border-bottom: 1px solid #444;
+            padding: 12px 10px;
+            border-bottom: 1px solid #2d2d2d;
             text-align: right;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .perfume-list thead th {
+            background: #0d0d0d;
+            color: var(--gold);
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .perfume-list tbody tr {
+            background: #181818;
+        }
+
+        .perfume-list tbody tr:nth-child(even) {
+            background: #121212;
+        }
+
+        .table-actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .edit-btn, .delete-btn {
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            background: transparent;
+            color: var(--white);
+            transition: all 0.2s ease;
+            min-width: 88px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .edit-btn {
+            color: #7cb4ff;
+            border: 1px solid rgba(124, 180, 255, 0.5);
+            background: rgba(124, 180, 255, 0.08);
+        }
+
+        .delete-btn {
+            color: #ff7a7a;
+            border: 1px solid rgba(255, 122, 122, 0.5);
+            background: rgba(255, 122, 122, 0.08);
+        }
+
+        .edit-btn:hover, .delete-btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.1);
+        }
+
+        .edit-btn {
+            color: #2d7ef7;
         }
 
         .delete-btn {
             color: #ff4d4d;
-            cursor: pointer;
-            border: none;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 20;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-card {
+            width: min(90%, 480px);
+            background: #1d1d1d;
+            border: 1px solid var(--gold);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .modal-close {
             background: none;
+            border: none;
+            color: var(--white);
+            font-size: 1.8rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            .container {
+                max-width: 100%;
+            }
+
+            header h1 {
+                font-size: 2rem;
+            }
+
+            .search-section,
+            .admin-content {
+                padding: 14px;
+            }
+
+            .perfume-list th,
+            .perfume-list td {
+                padding: 10px 8px;
+                font-size: 0.8rem;
+            }
+
+            .edit-btn,
+            .delete-btn {
+                min-width: 74px;
+                padding: 7px 8px;
+                font-size: 0.8rem;
+            }
         }
 
         @keyframes fadeIn {
@@ -228,21 +381,56 @@
                 <button class="add-btn" onclick="addPerfume()">إضافة للمخزن</button>
             </div>
 
-            <table class="perfume-list">
-                <thead>
-                    <tr>
-                        <th>العطر</th>
-                        <th>السعر</th>
-                        <th>الصف</th>
-                        <th>النوع</th>
-                        <th>حذف</th>
-                    </tr>
-                </thead>
-                <tbody id="perfumeTableBody">
-                    <!-- هيتم ملي البيانات بالـ JS -->
-                </tbody>
-            </table>
+            <input type="text" id="stockSearchInput" class="stock-search" placeholder="ابحث في المخزن..." oninput="filterStockProducts()">
+
+            <div class="table-wrap">
+                <table class="perfume-list">
+                    <thead>
+                        <tr>
+                            <th>العطر</th>
+                            <th>السعر</th>
+                            <th>الصف</th>
+                            <th>النوع</th>
+                            <th>تعديل</th>
+                            <th>حذف</th>
+                        </tr>
+                    </thead>
+                    <tbody id="perfumeTableBody">
+                        <!-- هيتم ملي البيانات بالـ JS -->
+                    </tbody>
+                </table>
+            </div>
         </div>
+    </div>
+</div>
+
+<div id="editModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>تعديل العطر</h3>
+            <button class="modal-close" onclick="closeEditModal()" aria-label="إغلاق">×</button>
+        </div>
+
+        <input type="hidden" id="editPerfumeId">
+        <input type="text" id="editName" placeholder="اسم العطر">
+        <input type="number" id="editPrice" placeholder="سعر الجرام" min="1">
+        <select id="editRow">
+            <option value="">اختر رقم الصف</option>
+            <option value="1">الصف 1</option>
+            <option value="2">الصف 2</option>
+            <option value="3">الصف 3</option>
+            <option value="4">الصف 4</option>
+        </select>
+        <select id="editType" onchange="toggleEditWesternSubtype()">
+            <option value="">اختر نوع العطر</option>
+            <option value="شرقي">شرقي</option>
+            <option value="غربي">غربي</option>
+        </select>
+        <select id="editWesternSubtype" style="display: none;">
+            <option value="رجالي">رجالي</option>
+            <option value="حريمي">حريمي</option>
+        </select>
+        <button class="add-btn" onclick="saveEditedPerfume()">حفظ التعديلات</button>
     </div>
 </div>
 
@@ -428,25 +616,53 @@
         renderTable();
     }
 
-    function toggleWesternSubtype() {
-        const typeValue = document.getElementById('newType').value;
-        const westSubtype = document.getElementById('newWesternSubtype');
-        const priceInput = document.getElementById('newPrice');
+    function syncTypeFields(typeFieldId, subtypeFieldId, priceFieldId, defaultPrice = 13, preservePrice = false) {
+        const typeValue = document.getElementById(typeFieldId).value;
+        const westSubtype = document.getElementById(subtypeFieldId);
+        const priceInput = document.getElementById(priceFieldId);
 
         westSubtype.style.display = typeValue === 'غربي' ? 'block' : 'none';
 
         if (typeValue === 'غربي') {
-            priceInput.value = '13';
+            priceInput.value = defaultPrice;
             priceInput.setAttribute('readonly', 'true');
         } else {
             priceInput.removeAttribute('readonly');
-            priceInput.value = '';
+            if (!preservePrice || !priceInput.value || Number(priceInput.value) === defaultPrice) {
+                priceInput.value = '';
+            }
         }
+    }
+
+    function toggleWesternSubtype() {
+        syncTypeFields('newType', 'newWesternSubtype', 'newPrice', 13, false);
+    }
+
+    function toggleEditWesternSubtype() {
+        syncTypeFields('editType', 'editWesternSubtype', 'editPrice', 13, true);
+    }
+
+    function openEditModal(perfume) {
+        document.getElementById('editPerfumeId').value = perfume.id;
+        document.getElementById('editName').value = perfume.name;
+        document.getElementById('editPrice').value = perfume.price;
+        document.getElementById('editRow').value = String(perfume.row || 1);
+        document.getElementById('editType').value = perfume.type;
+        document.getElementById('editWesternSubtype').value = perfume.westernSubtype || 'رجالي';
+        syncTypeFields('editType', 'editWesternSubtype', 'editPrice', 13, true);
+        document.getElementById('editModal').classList.add('show');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.remove('show');
     }
 
     window.searchPerfume = searchPerfume;
     window.toggleAdmin = toggleAdmin;
     window.toggleWesternSubtype = toggleWesternSubtype;
+    window.toggleEditWesternSubtype = toggleEditWesternSubtype;
+    window.openEditModal = openEditModal;
+    window.closeEditModal = closeEditModal;
     window.renderTable = renderTable;
 
     async function addPerfume() {
@@ -459,6 +675,15 @@
 
         if (!name || Number.isNaN(price) || price <= 0 || !row || !type) {
             alert('يرجى كتابة الاسم والسعر والصف ونوع العطر');
+            return;
+        }
+
+        const isDuplicateName = perfumes.some(item =>
+            item.name.trim().toLowerCase() === name.toLowerCase()
+        );
+
+        if (isDuplicateName) {
+            alert('هذا الاسم موجود بالفعل في المخزن، يرجى اختيار اسم مختلف.');
             return;
         }
 
@@ -499,6 +724,61 @@
 
     window.addPerfume = addPerfume;
 
+    async function saveEditedPerfume() {
+        const id = document.getElementById('editPerfumeId').value;
+        const name = document.getElementById('editName').value.trim();
+        const priceValue = document.getElementById('editPrice').value;
+        const type = document.getElementById('editType').value;
+        const price = type === 'غربي' ? 13 : Number(priceValue);
+        const row = Number(document.getElementById('editRow').value);
+        const westernSubtype = type === 'غربي' ? document.getElementById('editWesternSubtype').value : '';
+
+        if (!id || !name || Number.isNaN(price) || price <= 0 || !row || !type) {
+            alert('يرجى التحقق من الاسم والسعر والصف ونوع العطر');
+            return;
+        }
+
+        const updatedPerfume = {
+            id,
+            name,
+            price,
+            row: [1, 2, 3, 4].includes(row) ? row : 1,
+            type,
+            westernSubtype
+        };
+
+        if (db) {
+            try {
+                const { ref: dbRef, set } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
+                await set(dbRef(db, `perfumes/${id}`), updatedPerfume);
+            } catch (error) {
+                console.error('Failed to update Firebase:', error);
+                alert('فشل تحديث Firebase، تم الحفظ محلياً فقط.');
+                perfumes = perfumes.map(item => item.id === id ? updatedPerfume : item);
+                saveLocalBackup(perfumes);
+                renderTable();
+                closeEditModal();
+                return;
+            }
+        } else {
+            perfumes = perfumes.map(item => item.id === id ? updatedPerfume : item);
+            saveLocalBackup(perfumes);
+        }
+
+        if (!db) {
+            const index = perfumes.findIndex(item => item.id === id);
+            if (index !== -1) {
+                perfumes[index] = updatedPerfume;
+            }
+            saveLocalBackup(perfumes);
+        }
+
+        closeEditModal();
+        renderTable();
+    }
+
+    window.saveEditedPerfume = saveEditedPerfume;
+
     async function deletePerfume(id) {
         if (!confirm('هل تريد مسح هذا العطر؟')) return;
 
@@ -519,22 +799,69 @@
 
     window.deletePerfume = deletePerfume;
 
+    function getVisiblePerfumes() {
+        const queryEl = document.getElementById('stockSearchInput');
+        const query = queryEl ? queryEl.value.trim().toLowerCase() : '';
+
+        if (!query) {
+            return perfumes;
+        }
+
+        return perfumes.filter((p) => {
+            const searchableText = [
+                p.name,
+                getTypeLabel(p),
+                String(p.row || 1),
+                String(p.price),
+                p.westernSubtype || ''
+            ].join(' ').toLowerCase();
+
+            return searchableText.includes(query);
+        });
+    }
+
+    function filterStockProducts() {
+        renderTable();
+    }
+
     function renderTable() {
         const tbody = document.getElementById('perfumeTableBody');
         tbody.innerHTML = '';
 
-        perfumes.forEach((p) => {
+        const visiblePerfumes = getVisiblePerfumes();
+
+        if (visiblePerfumes.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align:center; color:#d4af37; padding:20px;">لا توجد نتائج</td>
+                </tr>
+            `;
+            return;
+        }
+
+        visiblePerfumes.forEach((p) => {
             tbody.innerHTML += `
                 <tr>
                     <td>${p.name}</td>
                     <td>${p.price} ج</td>
                     <td>${p.row || 1}</td>
                     <td>${getTypeLabel(p)}</td>
-                    <td><button class="delete-btn" onclick="deletePerfume('${p.id}')">❌</button></td>
+                    <td>
+                        <div class="table-actions">
+                            <button class="edit-btn" onclick='openEditModal(${JSON.stringify(p)})' title="تعديل">✏️ تعديل</button>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="table-actions">
+                            <button class="delete-btn" onclick="deletePerfume('${p.id}')" title="حذف">❌ حذف</button>
+                        </div>
+                    </td>
                 </tr>
             `;
         });
     }
+
+    window.filterStockProducts = filterStockProducts;
 
     async function startApp() {
         perfumes = getStoredPerfumes();
