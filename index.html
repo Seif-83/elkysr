@@ -91,6 +91,26 @@
             font-size: 1.2rem;
         }
 
+        .result-card .details {
+            margin-top: 18px;
+            display: grid;
+            gap: 10px;
+            text-align: right;
+        }
+
+        .result-card .detail-item {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 10px 14px;
+            border: 1px solid #e7d27d;
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+
+        .result-card .detail-item strong {
+            color: #2b2b2b;
+        }
+
         /* لوحة التحكم */
         .admin-panel {
             margin-top: 50px;
@@ -173,6 +193,11 @@
             <h2 id="resName">اسم العطر</h2>
             <div class="price" id="resPrice">0</div>
             <div class="currency">جنيه مصري للجرام</div>
+            <div class="details">
+                <div class="detail-item"><strong>الصف:</strong> <span id="resRow">-</span></div>
+                <div class="detail-item"><strong>النوع:</strong> <span id="resType">-</span></div>
+                <div class="detail-item"><strong>الوصف:</strong> <span id="resDescription">-</span></div>
+            </div>
         </div>
     </div>
 
@@ -185,6 +210,7 @@
             <div class="form-group">
                 <input type="text" id="newName" placeholder="اسم العطر">
                 <input type="number" id="newPrice" placeholder="سعر الجرام">
+                <textarea id="newDescription" rows="3" placeholder="وصف العطر (اختياري)"></textarea>
                 <select id="newRow">
                     <option value="">اختر رقم الصف</option>
                     <option value="1">الصف 1</option>
@@ -211,6 +237,7 @@
                         <th>السعر</th>
                         <th>الصف</th>
                         <th>النوع</th>
+                        <th>الوصف</th>
                         <th>حذف</th>
                     </tr>
                 </thead>
@@ -230,7 +257,8 @@
         price: 13,
         row: 1,
         type: 'غربي',
-        westernSubtype: 'رجالي'
+        westernSubtype: 'رجالي',
+        description: 'عطر غربي أنيق، مناسب للاستخدام اليومي مع رائحة متوازنة وجذابة.'
     }];
 
     const firebaseConfig = {
@@ -267,6 +295,7 @@
         const row = Number(item.row) || 1;
         const type = String(item.type || 'غربي').trim();
         const westernSubtype = String(item.westernSubtype || '').trim();
+        const description = String(item.description || item.desc || '').trim();
 
         if (!name || Number.isNaN(price)) return null;
 
@@ -276,7 +305,8 @@
             price,
             row: [1, 2, 3, 4].includes(row) ? row : 1,
             type: ['شرقي', 'غربي'].includes(type) ? type : 'غربي',
-            westernSubtype: ['رجالي', 'حريمي'].includes(westernSubtype) ? westernSubtype : ''
+            westernSubtype: ['رجالي', 'حريمي'].includes(westernSubtype) ? westernSubtype : '',
+            description
         };
     }
 
@@ -285,6 +315,10 @@
             return perfume.westernSubtype ? `غربي / ${perfume.westernSubtype}` : 'غربي';
         }
         return 'شرقي';
+    }
+
+    function getRowLabel(perfume) {
+        return `الصف ${perfume.row || 1}`;
     }
 
     function getStoredPerfumes() {
@@ -374,6 +408,9 @@
         const resultCard = document.getElementById('resultCard');
         const resName = document.getElementById('resName');
         const resPrice = document.getElementById('resPrice');
+        const resRow = document.getElementById('resRow');
+        const resType = document.getElementById('resType');
+        const resDescription = document.getElementById('resDescription');
 
         if (query.length > 0) {
             const found = perfumes.find(p => p.name.toLowerCase().includes(query));
@@ -381,6 +418,9 @@
             if (found) {
                 resName.innerText = found.name;
                 resPrice.innerText = found.price;
+                resRow.innerText = getRowLabel(found);
+                resType.innerText = getTypeLabel(found);
+                resDescription.innerText = found.description || 'لا يوجد وصف مضاف لهذا العطر';
                 resultCard.style.display = 'block';
             } else {
                 resultCard.style.display = 'none';
@@ -411,6 +451,7 @@
         const name = document.getElementById('newName').value.trim();
         const priceValue = document.getElementById('newPrice').value;
         const price = Number(priceValue);
+        const description = document.getElementById('newDescription').value.trim();
         const row = Number(document.getElementById('newRow').value);
         const type = document.getElementById('newType').value;
         const westernSubtype = type === 'غربي' ? document.getElementById('newWesternSubtype').value : '';
@@ -424,6 +465,7 @@
             id: generateId(),
             name,
             price,
+            description,
             row: [1, 2, 3, 4].includes(row) ? row : 1,
             type,
             westernSubtype
@@ -448,6 +490,7 @@
 
         document.getElementById('newName').value = '';
         document.getElementById('newPrice').value = '';
+        document.getElementById('newDescription').value = '';
         document.getElementById('newRow').value = '';
         document.getElementById('newType').value = '';
         document.getElementById('newWesternSubtype').style.display = 'none';
@@ -488,6 +531,7 @@
                     <td>${p.price} ج</td>
                     <td>${p.row || 1}</td>
                     <td>${getTypeLabel(p)}</td>
+                    <td>${p.description || '—'}</td>
                     <td><button class="delete-btn" onclick="deletePerfume('${p.id}')">❌</button></td>
                 </tr>
             `;
