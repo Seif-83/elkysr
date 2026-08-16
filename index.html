@@ -164,6 +164,63 @@
             font-size: 1rem;
         }
 
+        .stock-toolbar {
+            display: grid;
+            grid-template-columns: 1.5fr 0.9fr;
+            align-items: stretch;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .stock-filters {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .stock-filter {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(212,175,55,0.3);
+            border-radius: 10px;
+            padding: 10px 12px;
+            min-width: 0;
+        }
+
+        .stock-filter label {
+            color: var(--gold);
+            font-weight: 700;
+            font-size: 0.84rem;
+        }
+
+        .stock-filter select {
+            width: 100%;
+            margin: 0;
+            padding: 10px 12px;
+            background: #111;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            min-width: 0;
+        }
+
+        .stock-total {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: rgba(212, 175, 55, 0.08);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            border-radius: 10px;
+            color: var(--gold);
+            padding: 10px 14px;
+            font-weight: 700;
+            white-space: nowrap;
+            min-height: 100%;
+        }
+
         .table-wrap {
             width: 100%;
             overflow-x: auto;
@@ -311,6 +368,18 @@
                 padding: 14px;
             }
 
+            .stock-toolbar {
+                grid-template-columns: 1fr;
+            }
+
+            .stock-filters {
+                grid-template-columns: 1fr;
+            }
+
+            .stock-total {
+                min-height: 52px;
+            }
+
             .perfume-list th,
             .perfume-list td {
                 padding: 10px 8px;
@@ -382,6 +451,38 @@
             </div>
 
             <input type="text" id="stockSearchInput" class="stock-search" placeholder="ابحث في المخزن..." oninput="filterStockProducts()">
+
+            <div class="stock-toolbar">
+                <div class="stock-filters">
+                    <div class="stock-filter">
+                        <label for="stockTypeFilter">نوع العطر</label>
+                        <select id="stockTypeFilter" onchange="filterStockProducts()">
+                            <option value="all">الكل</option>
+                            <option value="شرقي">شرقي</option>
+                            <option value="غربي">غربي</option>
+                        </select>
+                    </div>
+                    <div class="stock-filter">
+                        <label for="stockWesternSubtypeFilter">نوع الشخص</label>
+                        <select id="stockWesternSubtypeFilter" onchange="filterStockProducts()">
+                            <option value="all">الكل</option>
+                            <option value="رجالي">رجالي</option>
+                            <option value="حريمي">حريمي</option>
+                        </select>
+                    </div>
+                    <div class="stock-filter">
+                        <label for="stockRowFilter">الصف</label>
+                        <select id="stockRowFilter" onchange="filterStockProducts()">
+                            <option value="all">الكل</option>
+                            <option value="1">الصف 1</option>
+                            <option value="2">الصف 2</option>
+                            <option value="3">الصف 3</option>
+                            <option value="4">الصف 4</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="stock-total" id="stockTotalCount">عدد العطور: 0</div>
+            </div>
 
             <div class="table-wrap">
                 <table class="perfume-list">
@@ -799,36 +900,71 @@
 
     window.deletePerfume = deletePerfume;
 
+    function getSelectedFilters() {
+        const typeEl = document.getElementById('stockTypeFilter');
+        const subtypeEl = document.getElementById('stockWesternSubtypeFilter');
+        const rowEl = document.getElementById('stockRowFilter');
+
+        return {
+            type: typeEl ? typeEl.value : 'all',
+            subtype: subtypeEl ? subtypeEl.value : 'all',
+            row: rowEl ? rowEl.value : 'all'
+        };
+    }
+
+    function updateSubtypeVisibility() {
+        const typeEl = document.getElementById('stockTypeFilter');
+        const subtypeWrap = document.getElementById('stockWesternSubtypeFilter').closest('.stock-filter');
+        const selectedType = typeEl ? typeEl.value : 'all';
+        const subtypeEl = document.getElementById('stockWesternSubtypeFilter');
+
+        if (subtypeEl) {
+            subtypeEl.disabled = selectedType !== 'غربي';
+            subtypeWrap.style.opacity = selectedType === 'غربي' ? '1' : '0.6';
+            if (selectedType !== 'غربي' && subtypeEl.value !== 'all') {
+                subtypeEl.value = 'all';
+            }
+        }
+    }
+
     function getVisiblePerfumes() {
         const queryEl = document.getElementById('stockSearchInput');
         const query = queryEl ? queryEl.value.trim().toLowerCase() : '';
+        const { type, subtype, row } = getSelectedFilters();
 
-        if (!query) {
-            return perfumes;
-        }
-
-        return perfumes.filter((p) => {
-            const searchableText = [
+        const filtered = perfumes.filter((p) => {
+            const matchesType = type === 'all' || p.type === type;
+            const matchesSubtype = subtype === 'all' || p.type !== 'غربي' || (p.westernSubtype || 'رجالي') === subtype;
+            const matchesRow = row === 'all' || String(p.row || 1) === String(row);
+            const matchesQuery = !query || [
                 p.name,
                 getTypeLabel(p),
                 String(p.row || 1),
                 String(p.price),
                 p.westernSubtype || ''
-            ].join(' ').toLowerCase();
+            ].join(' ').toLowerCase().includes(query);
 
-            return searchableText.includes(query);
+            return matchesType && matchesSubtype && matchesRow && matchesQuery;
         });
+
+        return filtered;
     }
 
     function filterStockProducts() {
+        updateSubtypeVisibility();
         renderTable();
     }
 
     function renderTable() {
         const tbody = document.getElementById('perfumeTableBody');
+        const totalCountEl = document.getElementById('stockTotalCount');
         tbody.innerHTML = '';
 
         const visiblePerfumes = getVisiblePerfumes();
+
+        if (totalCountEl) {
+            totalCountEl.textContent = `عدد العطور: ${visiblePerfumes.length}`;
+        }
 
         if (visiblePerfumes.length === 0) {
             tbody.innerHTML = `
