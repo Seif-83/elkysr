@@ -196,7 +196,6 @@
             <div class="details">
                 <div class="detail-item"><strong>الصف:</strong> <span id="resRow">-</span></div>
                 <div class="detail-item"><strong>النوع:</strong> <span id="resType">-</span></div>
-                <div class="detail-item"><strong>الوصف:</strong> <span id="resDescription">-</span></div>
             </div>
         </div>
     </div>
@@ -209,8 +208,7 @@
             <h3>إضافة عطر جديد</h3>
             <div class="form-group">
                 <input type="text" id="newName" placeholder="اسم العطر">
-                <input type="number" id="newPrice" placeholder="سعر الجرام">
-                <textarea id="newDescription" rows="3" placeholder="وصف العطر (اختياري)"></textarea>
+                <input type="number" id="newPrice" placeholder="سعر الجرام" min="1">
                 <select id="newRow">
                     <option value="">اختر رقم الصف</option>
                     <option value="1">الصف 1</option>
@@ -237,7 +235,6 @@
                         <th>السعر</th>
                         <th>الصف</th>
                         <th>النوع</th>
-                        <th>الوصف</th>
                         <th>حذف</th>
                     </tr>
                 </thead>
@@ -257,8 +254,7 @@
         price: 13,
         row: 1,
         type: 'غربي',
-        westernSubtype: 'رجالي',
-        description: 'عطر غربي أنيق، مناسب للاستخدام اليومي مع رائحة متوازنة وجذابة.'
+        westernSubtype: 'رجالي'
     }];
 
     const firebaseConfig = {
@@ -295,7 +291,6 @@
         const row = Number(item.row) || 1;
         const type = String(item.type || 'غربي').trim();
         const westernSubtype = String(item.westernSubtype || '').trim();
-        const description = String(item.description || item.desc || '').trim();
 
         if (!name || Number.isNaN(price)) return null;
 
@@ -305,8 +300,7 @@
             price,
             row: [1, 2, 3, 4].includes(row) ? row : 1,
             type: ['شرقي', 'غربي'].includes(type) ? type : 'غربي',
-            westernSubtype: ['رجالي', 'حريمي'].includes(westernSubtype) ? westernSubtype : '',
-            description
+            westernSubtype: ['رجالي', 'حريمي'].includes(westernSubtype) ? westernSubtype : ''
         };
     }
 
@@ -410,7 +404,6 @@
         const resPrice = document.getElementById('resPrice');
         const resRow = document.getElementById('resRow');
         const resType = document.getElementById('resType');
-        const resDescription = document.getElementById('resDescription');
 
         if (query.length > 0) {
             const found = perfumes.find(p => p.name.toLowerCase().includes(query));
@@ -420,7 +413,6 @@
                 resPrice.innerText = found.price;
                 resRow.innerText = getRowLabel(found);
                 resType.innerText = getTypeLabel(found);
-                resDescription.innerText = found.description || 'لا يوجد وصف مضاف لهذا العطر';
                 resultCard.style.display = 'block';
             } else {
                 resultCard.style.display = 'none';
@@ -439,7 +431,17 @@
     function toggleWesternSubtype() {
         const typeValue = document.getElementById('newType').value;
         const westSubtype = document.getElementById('newWesternSubtype');
+        const priceInput = document.getElementById('newPrice');
+
         westSubtype.style.display = typeValue === 'غربي' ? 'block' : 'none';
+
+        if (typeValue === 'غربي') {
+            priceInput.value = '13';
+            priceInput.setAttribute('readonly', 'true');
+        } else {
+            priceInput.removeAttribute('readonly');
+            priceInput.value = '';
+        }
     }
 
     window.searchPerfume = searchPerfume;
@@ -450,10 +452,9 @@
     async function addPerfume() {
         const name = document.getElementById('newName').value.trim();
         const priceValue = document.getElementById('newPrice').value;
-        const price = Number(priceValue);
-        const description = document.getElementById('newDescription').value.trim();
-        const row = Number(document.getElementById('newRow').value);
         const type = document.getElementById('newType').value;
+        const price = type === 'غربي' ? 13 : Number(priceValue);
+        const row = Number(document.getElementById('newRow').value);
         const westernSubtype = type === 'غربي' ? document.getElementById('newWesternSubtype').value : '';
 
         if (!name || Number.isNaN(price) || price <= 0 || !row || !type) {
@@ -465,7 +466,6 @@
             id: generateId(),
             name,
             price,
-            description,
             row: [1, 2, 3, 4].includes(row) ? row : 1,
             type,
             westernSubtype
@@ -490,7 +490,6 @@
 
         document.getElementById('newName').value = '';
         document.getElementById('newPrice').value = '';
-        document.getElementById('newDescription').value = '';
         document.getElementById('newRow').value = '';
         document.getElementById('newType').value = '';
         document.getElementById('newWesternSubtype').style.display = 'none';
@@ -531,7 +530,6 @@
                     <td>${p.price} ج</td>
                     <td>${p.row || 1}</td>
                     <td>${getTypeLabel(p)}</td>
-                    <td>${p.description || '—'}</td>
                     <td><button class="delete-btn" onclick="deletePerfume('${p.id}')">❌</button></td>
                 </tr>
             `;
